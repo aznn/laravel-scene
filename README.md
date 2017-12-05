@@ -28,6 +28,7 @@ class PersonTransformer extends SceneTransformer {
             'name',
             'email',
             'fullname',
+            'actions',
             'created_at' => new DateFormatTransform('Y-m-d'),
         ];
     }
@@ -35,6 +36,13 @@ class PersonTransformer extends SceneTransformer {
     protected function getFullname(Person $person)
     {
         return $person->first_name . ' ' . $person->last_name;
+    }
+    
+    protected function getActions(Person $person)
+    {
+        // call service methods to figure out what actions the user can perform
+        
+        return ['can_edit', 'can_update'];
     }
 }
 ```
