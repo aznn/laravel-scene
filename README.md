@@ -23,6 +23,17 @@ Create a transformer class to transform your model. You can use the same transfo
 Example.
 ```php
 class PersonTransformer extends SceneTransformer {
+    
+    /**
+     * Eloquent relations to preload
+     *
+     * Note: It will only get preloaded if it already isnt.
+     */
+    protected function getPreloadRelations()
+    {
+        return ['posts'];
+    }
+
     /**
      * Structure transformations.
      *
@@ -36,6 +47,11 @@ class PersonTransformer extends SceneTransformer {
             'email',
             'fullname',
             'actions',
+            'address' => [
+                'name',
+                'street',
+            ],
+            'posts'      => PostTransformer::createMinTransformer(),
             'created_at' => new DateFormatTransform('Y-m-d'),
         ];
     }
@@ -73,10 +89,18 @@ Now in your controller method.
 ```php
     public function all()
     {
-        $people = $this->peopleService->getAllPeople();
+        $people = $this->personService->getAllPeople();
 
-        $transformer = new PeopleTransformer();
+        $transformer = PersonTransformer::createMinTransformer();
         return SceneResponse::respond($people, $transformer);
+    }
+    
+    public function show($id)
+    {
+        $person = $this->personService->getPersonByIdOrFail($id);
+        
+        $transformer = new PersonTransformer();
+        return SceneResponse::respond($person, $transformer);
     }
 ```
 
