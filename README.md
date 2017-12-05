@@ -57,6 +57,10 @@ class PersonTransformer extends SceneTransformer {
                 'temp-disabled' => 'Temporarily Disabled',
             ]),
             'posts'      => PostTransformer::createMinTransformer(),
+            
+            // return the field 'joined_date' as 'date',
+            'date' => 'joined_date',
+            
             'created_at' => new DateFormatTransform('Y-m-d'),
         ];
     }
