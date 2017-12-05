@@ -1,5 +1,12 @@
 # Laravel Scene
-Laravel library to help transform your Models and to API responses.
+Laravel library to convert your models into API responses.
+
+### Why a transformation library?
+By default you can use the default implementation which converts your models to json based on `toArray()`. This approach starts to get messy once you start having different responses for your models for different endpoints (Eg: based on user permissions, endpoint types, etc). 
+
+This library also allows you to seperate your object transformation logic from your Models. Your models do not need to concern themselves with how they get represented over the wire at different endpoints. The same way you can use the transformers to transform objects or arrays. They don't have to be eloquent models. 
+
+Note: Laravel API Resource is a great start if you're using >= 5.5. In that case you should carefully evaluate your needs and how your complexity will grow before chosing this. 
 
 # Installation
 
