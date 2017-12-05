@@ -39,6 +39,20 @@ class PersonTransformer extends SceneTransformer {
             'created_at' => new DateFormatTransform('Y-m-d'),
         ];
     }
+    
+    /**
+     * Structure to use when returning multiple objects
+     *
+     * @return array structure
+     */
+    protected function getMinStructure()
+    {
+        return [
+            'id',
+            'name',
+            'email',
+        ];
+    }
 
     protected function getFullname(Person $person)
     {
