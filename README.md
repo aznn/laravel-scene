@@ -108,3 +108,6 @@ Usually it is better to do your ordering before passing into the transformer. Ho
 
 ### Post process hook.
 To do any changes __after__ all transformations you can override the method `transformObject`. The transformed output array will be passed in as the first argument and original object as the second.
+
+# Licence
+MIT
