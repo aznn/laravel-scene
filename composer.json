@@ -1,0 +1,23 @@
+{
+    "name": "azaan/laravel-scene",
+    "description": "Laravel API Transformer",
+    "type": "library",
+    "require": {
+        "illuminate/support": "^5.2",
+        "illuminate/database": "^5.2",
+        "php": ">=5.5.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "Azaan\\LaravelScene\\": "src"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ahmed Azaan",
+            "email": "azaan@outlook.com"
+        }
+    ],
+    "minimum-stability": "dev"
+}
