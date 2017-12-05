@@ -51,6 +51,11 @@ class PersonTransformer extends SceneTransformer {
                 'name',
                 'street',
             ],
+            'status' => new ArrayMapTransform([
+                'active'        => 'Active',
+                'blocked'       => 'Blocked',
+                'temp-disabled' => 'Temporarily Disabled',
+            ]),
             'posts'      => PostTransformer::createMinTransformer(),
             'created_at' => new DateFormatTransform('Y-m-d'),
         ];
