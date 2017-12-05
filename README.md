@@ -47,7 +47,7 @@ Now in your controller method.
         $people = $this->peopleService->getAllPeople();
 
         $transformer = new PeopleTransformer();
-        return SceneResponse::respond($leaves, $transformer);
+        return SceneResponse::respond($people, $transformer);
     }
 ```
 
