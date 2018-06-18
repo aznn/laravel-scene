@@ -57,7 +57,7 @@ class SceneResponse
      * @param LengthAwarePaginator $paginatedData
      * @return array
      */
-    private static function makePager(LengthAwarePaginator $paginatedData)
+    protected static function makePager(LengthAwarePaginator $paginatedData)
     {
         $pager = [
             'total'        => $paginatedData->total(),
