@@ -165,7 +165,7 @@ abstract class SceneTransformer implements Transformer
                 }
 
                 if (!empty($toLoad)) {
-                    $data->load($toLoad);
+                    $data->loadMissing($toLoad);
                 }
             }
         }
