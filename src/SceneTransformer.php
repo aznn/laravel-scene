@@ -2,7 +2,6 @@
 
 namespace Azaan\LaravelScene;
 
-
 use Azaan\LaravelScene\Contracts\Transformer;
 use Azaan\LaravelScene\Contracts\ValueTransformation;
 use Azaan\LaravelScene\Exceptions\InvariantViolationException;
@@ -11,6 +10,7 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Collection as DbCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+
 
 abstract class SceneTransformer implements Transformer
 {
@@ -155,23 +155,36 @@ abstract class SceneTransformer implements Transformer
 
         if ($data instanceof DbCollection || $data instanceof Model) {
             $preloadRelations = $this->getPreloadRelations();
-            if (!empty($preloadRelations)) {
+            if (! empty($preloadRelations)) {
 
                 $toLoad = [];
-                foreach ($preloadRelations as $relation) {
-                    if (!Helpers::isRelationLoaded($relation, $data)) {
+                foreach ($preloadRelations as $key => $value) {
+
+                    if (is_numeric($key)) {
+                        $relation = $value;
+                    } else {
+                        // key is not numeric. Load relation if value is truthy.
+                        // this allows for cases like 'createdBy' => !$this->showMin
+                        if (!$value) {
+                            continue;
+                        }
+
+                        $relation = $key;
+                    }
+
+                    if (! Helpers::isRelationLoaded($relation, $data)) {
                         $toLoad[] = $relation;
                     }
                 }
 
-                if (!empty($toLoad)) {
+                if (! empty($toLoad)) {
                     $data->loadMissing($toLoad);
                 }
             }
         }
 
         if (Helpers::isSequentialArray($data) || $data instanceof Collection) {
-            if (!$data instanceof Collection) {
+            if (! $data instanceof Collection) {
                 $data = collect($data);
             }
 
@@ -228,8 +241,8 @@ abstract class SceneTransformer implements Transformer
             $object = $object->toArray();
         }
 
-        if (!is_array($object)) {
-            $object = (array)$object;
+        if (! is_array($object)) {
+            $object = (array) $object;
         }
 
         // do the transformations
@@ -332,7 +345,6 @@ abstract class SceneTransformer implements Transformer
                     $out[$key] = $this->structureTransformationHelper($newObject, $value, $original);
                 }
 
-
             } else {
                 // single value transformation
 
@@ -363,7 +375,7 @@ abstract class SceneTransformer implements Transformer
      */
     private function getValue($key, $object, $original, $useOriginal = false)
     {
-        if (!is_string($key)) {
+        if (! is_string($key)) {
             throw new InvariantViolationException("Invalid key passed in to getValue. Key of type " . class_basename($key));
         }
 
@@ -395,7 +407,7 @@ abstract class SceneTransformer implements Transformer
      */
     private function injectDependencies()
     {
-        if (!method_exists($this, 'inject')) {
+        if (! method_exists($this, 'inject')) {
             return;
         }
 
@@ -410,7 +422,6 @@ abstract class SceneTransformer implements Transformer
         foreach ($parameters as $parameter) {
             $buildParams[] = $container->make($parameter->getClass()->name);
         }
-
 
         call_user_func_array([$this, 'inject'], $buildParams);
     }
