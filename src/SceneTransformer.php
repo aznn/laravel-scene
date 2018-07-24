@@ -121,7 +121,7 @@ abstract class SceneTransformer implements Transformer
      */
     protected function getDownloadStructure()
     {
-        return $this->getStructure();
+        return $this->getMinStructure();
     }
 
     /**
