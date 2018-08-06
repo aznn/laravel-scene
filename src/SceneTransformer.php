@@ -519,11 +519,6 @@ abstract class SceneTransformer implements Transformer
             return call_user_func_array([$original, $getMethod], []);
         }
 
-        // 4. Call if method with same name as key exists on object
-        if (method_exists($original, $key)) {
-            return call_user_func_array([$original, $key], []);
-        }
-
         return null;
     }
 

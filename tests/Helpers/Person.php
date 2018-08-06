@@ -9,6 +9,12 @@ class Person extends Model
 {
     protected $guarded = [];
 
+    public function invalid()
+    {
+        // a relationship goes here.
+        return 'INVALID';
+    }
+
     public function status()
     {
         return 'status';

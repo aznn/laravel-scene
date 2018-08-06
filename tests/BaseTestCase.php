@@ -87,14 +87,16 @@ class BaseTestCase extends TestCase
     {
         return [
             [
-                'id'    => 1,
-                'name'  => 'Azaan',
-                'email' => 'azaan@email.com',
+                'id'      => 1,
+                'name'    => 'Azaan',
+                'email'   => 'azaan@email.com',
+                'invalid' => null,
             ],
             [
                 'id'    => 2,
                 'name'  => 'John Doe',
                 'email' => 'john@email.com',
+                'invalid' => null,
             ],
         ];
     }

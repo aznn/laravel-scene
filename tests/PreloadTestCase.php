@@ -3,8 +3,10 @@
 namespace Tests;
 
 
+use Azaan\LaravelScene\Helpers;
 use Azaan\LaravelScene\SceneTransformer;
 use Illuminate\Database\Eloquent\Collection;
+use Tests\Helpers\Person;
 
 class PreloadTestCase extends BaseTestCase
 {
@@ -127,6 +129,30 @@ class PreloadTestCase extends BaseTestCase
             [
                 ['key' => []],
                 ['key' => []],
+            ]
+        );
+    }
+
+    public function testNullableReRationShipTest()
+    {
+        $transformer = new class extends SceneTransformer
+        {
+            protected function getStructure()
+            {
+                return [
+                    'invalid',
+                ];
+            }
+        };
+
+        $persons = $this->personsDbCollection();
+
+        $this->assertTransformation(
+            $transformer,
+            $persons,
+            [
+                ['invalid' => null],
+                ['invalid' => null],
             ]
         );
     }
