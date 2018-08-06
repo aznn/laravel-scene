@@ -9,7 +9,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Azaan\\LaravelScene\\": "src"
+            "Azaan\\LaravelScene\\": "src",
+            "Tests\\": "tests"
         }
     },
     "license": "MIT",
@@ -19,5 +20,8 @@
             "email": "azaan@outlook.com"
         }
     ],
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "require-dev": {
+        "phpunit/phpunit": "^7.4@dev"
+    }
 }

@@ -17,11 +17,59 @@ abstract class SceneTransformer implements Transformer
     public $showMin = false;
 
     /**
+     * When given as a value in preload relations sub relations will be loaded from the child transformer too.
+     *
+     * Eg: preloading 'user' will preload whatever relations required by the trasformer associated to the 'user' key
+     *     in the structure
+     */
+    const PRELOAD_RELATED = '__PRELOAD_RELATED__';
+
+    /**
+     * If set as a structure value the key will be ignored. Used to implement
+     * structure helpers
+     */
+    const REMOVE_KEY = '__REMOVE_KEY__';
+
+    /**
      * Use the download structure
      *
      * @var bool
      */
     public $useDownloadStructure = false;
+
+    /**
+     * Override structure from constructor
+     *
+     * @var array|null
+     */
+    protected $structureOverride = null;
+
+    /**
+     * Override min structure from constructor
+     *
+     * @var array|null
+     */
+    protected $minStructureOverride = null;
+
+    /**
+     * Override download structure from constructor
+     *
+     * @var array|null
+     */
+    protected $downloadStructureOverride = null;
+
+    /**
+     * SceneTransformer constructor.
+     * @param null|array $structure
+     * @param null|array $minStructure
+     * @param null|array $downloadStructure
+     */
+    public function __construct($structure = null, $minStructure = null, $downloadStructure = null)
+    {
+        $this->structureOverride         = $structure;
+        $this->minStructureOverride      = $minStructure;
+        $this->downloadStructureOverride = $downloadStructure;
+    }
 
     /**
      * Create a min transformer instance
@@ -83,7 +131,7 @@ abstract class SceneTransformer implements Transformer
      *
      * @return mixed
      */
-    protected function preProcessSingle($obj)
+    protected function preProcessSingle(&$obj)
     {
         // default is a no-op
         return $obj;
@@ -110,7 +158,7 @@ abstract class SceneTransformer implements Transformer
      */
     protected function getNullState()
     {
-        return null;
+        return [];
     }
 
     /**
@@ -121,6 +169,28 @@ abstract class SceneTransformer implements Transformer
     public function getPreloadRelations()
     {
         return [];
+    }
+
+    /**
+     * Return the object when predicate is true. Otherwise mark key for deletion
+     *
+     * @param $predicate
+     * @param $obj
+     *
+     * @return string
+     */
+    public function when($predicate, $obj = null)
+    {
+        if (!$predicate) {
+            return static::REMOVE_KEY;
+        }
+
+        // valid
+        if ($obj instanceof \Closure) {
+            return $obj();
+        }
+
+        return $obj;
     }
 
     /**
@@ -153,15 +223,18 @@ abstract class SceneTransformer implements Transformer
     {
         $this->injectDependencies();
 
+        // transform structure
+        $structure = $this->figureStructure();
+
         if ($data instanceof DbCollection || $data instanceof Model) {
             $preloadRelations = $this->getPreloadRelations();
-            if (! empty($preloadRelations)) {
+            if (!empty($preloadRelations)) {
 
                 $toLoad = [];
                 foreach ($preloadRelations as $key => $value) {
 
                     if (is_numeric($key)) {
-                        $relation = $value;
+                        $toLoad[] = $value;
                     } else {
                         // key is not numeric. Load relation if value is truthy.
                         // this allows for cases like 'createdBy' => !$this->showMin
@@ -169,30 +242,38 @@ abstract class SceneTransformer implements Transformer
                             continue;
                         }
 
-                        $relation = $key;
-                    }
+                        if ($value === static::PRELOAD_RELATED) {
+                            $childRelations = $this->figureChildRelations(isset($structure[$key]) ? $structure[$key] : null);
+                            foreach ($childRelations as $relation) {
+                                $toLoad[] = "$key.$relation";
+                            }
+                            continue;
+                        }
 
-                    if (! Helpers::isRelationLoaded($relation, $data)) {
-                        $toLoad[] = $relation;
+                        // add key
+                        $toLoad[] = $key;
                     }
                 }
 
-                if (! empty($toLoad)) {
-                    $data->loadMissing($toLoad);
+                if (!empty($toLoad)) {
+                    $data->loadMissing(array_unique($toLoad));
                 }
             }
         }
 
         if (Helpers::isSequentialArray($data) || $data instanceof Collection) {
-            if (! $data instanceof Collection) {
+            if (!$data instanceof Collection) {
                 $data = collect($data);
             }
 
             // collection pre process hook
             $data = $this->preProcessCollection($data);
+            if (!$data instanceof Collection) {
+                throw new InvariantViolationException("Transformer pre process collection should return a collection");
+            }
 
-            $result = $data->map(function ($object) {
-                return $this->transformOneHelper($object);
+            $result = $data->map(function ($object) use ($structure) {
+                return $this->transformOneHelper($object, $structure);
             });
 
             // add order by clause
@@ -200,31 +281,32 @@ abstract class SceneTransformer implements Transformer
             if ($orderBy != null) {
                 if (is_array($orderBy)) {
                     $orderField = $orderBy[0];
-                    $orderType  = $orderBy[1];
+                    $orderType  = strtolower($orderBy[1]);
                 } else {
                     $orderField = $orderBy;
-                    $orderType  = 'ASC';
+                    $orderType  = 'asc';
                 }
 
-                $result = ($orderType == 'DESC') ? $result->sortByDesc($orderField) : $result->sortBy($orderField);
+                $result = ($orderType == 'desc') ? $result->sortByDesc($orderField) : $result->sortBy($orderField);
             }
 
             return $result->values()->toArray();
 
         } else {
-            return $this->transformOneHelper($data);
+            return $this->transformOneHelper($data, $structure);
         }
     }
 
     /**
      * Helper function which transforms a single object
      *
-     * @param $object
+     * @param       $object
      *
+     * @param array $structure
      * @return array
      * @throws InvariantViolationException
      */
-    private function transformOneHelper($object)
+    private function transformOneHelper($object, $structure)
     {
         if ($object == null) {
             return $this->getNullState();
@@ -241,17 +323,11 @@ abstract class SceneTransformer implements Transformer
             $object = $object->toArray();
         }
 
-        if (! is_array($object)) {
-            $object = (array) $object;
+        if (!is_array($object)) {
+            $object = (array)$object;
         }
 
         // do the transformations
-        if ($this->useDownloadStructure) {
-            $structure = $this->getDownloadStructure();
-        } else {
-            $structure = $this->showMin ? $this->getMinStructure() : $this->getStructure();
-        }
-
         $transformed = $this->structureTransformationHelper($object, $structure, $original);
 
         if ($original != null) {
@@ -262,10 +338,49 @@ abstract class SceneTransformer implements Transformer
     }
 
     /**
+     * Figure out structure
+     *
+     * @return array
+     */
+    protected function figureStructure()
+    {
+        if ($this->useDownloadStructure) {
+            return $this->downloadStructureOverride ? $this->downloadStructureOverride : $this->getDownloadStructure();
+
+        } else if ($this->showMin) {
+            return $this->minStructureOverride ? $this->minStructureOverride : $this->getMinStructure();
+
+        } else {
+            return $this->structureOverride ? $this->structureOverride : $this->getStructure();
+        }
+    }
+
+    /**
+     * Figure preload relations
+     *
+     * @param $obj
+     * @return array
+     */
+    protected function figureChildRelations($obj)
+    {
+        if (empty($obj)) {
+            return [];
+        }
+
+        if ($obj instanceof SceneTransformer) {
+            return $obj->getPreloadRelations();
+        }
+
+        // TODO: Consider case where structure value can be [newKey, Transformer]
+
+        return [];
+    }
+
+    /**
      * Given an object does any transformations. This function is called after applying
      * structure transformations.
      *
-     * @param array $object   object to apply the transformations on
+     * @param array $object object to apply the transformations on
      * @param mixed $original original object without any transformations
      *
      * @return array transformed object
@@ -280,9 +395,9 @@ abstract class SceneTransformer implements Transformer
     /**
      * Helper function which does structure transformations
      *
-     * @param array $object    object to perform on
+     * @param array $object object to perform on
      * @param array $structure structure rules
-     * @param array $original  original object
+     * @param array $original original object
      *
      * @return array transformed object
      * @throws InvariantViolationException
@@ -300,6 +415,10 @@ abstract class SceneTransformer implements Transformer
                 return $object;
             }
 
+            if ($value === static::REMOVE_KEY) {
+                continue;
+            }
+
             // a child transformer.
             if ($value instanceof SceneTransformer) {
                 $subObj = $this->getValue($key, $object, $original, true);
@@ -310,7 +429,7 @@ abstract class SceneTransformer implements Transformer
             }
 
             // simple value transformation
-            if ($value instanceof ValueTransformation) {
+            if ($value instanceof Transformer) {
                 $subObj = $this->getValue($key, $object, $original);
 
                 if (Helpers::isSequentialArray($subObj)) {
@@ -375,11 +494,11 @@ abstract class SceneTransformer implements Transformer
      */
     private function getValue($key, $object, $original, $useOriginal = false)
     {
-        if (! is_string($key)) {
+        if (!is_string($key)) {
             throw new InvariantViolationException("Invalid key passed in to getValue. Key of type " . class_basename($key));
         }
 
-        // if 'get' method exists call it
+        // 1. Call get method if it exists on transformer
         $getMethod = 'get' . studly_case($key);
         if (method_exists($this, $getMethod)) {
             return call_user_func_array([$this, $getMethod], [$original]);
@@ -389,14 +508,20 @@ abstract class SceneTransformer implements Transformer
 
         $defaultPlaceholder = '__DEFAULT_VALUE__';
 
+        // 2. Try a path get on object
         $result = Helpers::pathGet($lookUpObj, $key, $defaultPlaceholder);
         if ($result !== $defaultPlaceholder) {
             return $result;
         }
 
-        // if getter exists on object call it as last resort
+        // 3. Call get method on object
         if (method_exists($original, $getMethod)) {
             return call_user_func_array([$original, $getMethod], []);
+        }
+
+        // 4. Call if method with same name as key exists on object
+        if (method_exists($original, $key)) {
+            return call_user_func_array([$original, $key], []);
         }
 
         return null;
@@ -407,7 +532,7 @@ abstract class SceneTransformer implements Transformer
      */
     private function injectDependencies()
     {
-        if (! method_exists($this, 'inject')) {
+        if (!method_exists($this, 'inject')) {
             return;
         }
 
