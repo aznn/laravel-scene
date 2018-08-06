@@ -31,7 +31,16 @@ class PersonTransformer extends SceneTransformer {
      */
     protected function getPreloadRelations()
     {
-        return ['posts'];
+        return [
+            // preload nested relations of posts defined in PostTransformer
+            'posts'   => SceneTransformer::PRELOAD_RELATED,
+            
+            // load addresses if $this->showMin is truthy
+            'address' => $this->showMin,
+            
+            // preload createdBy relation
+            'createdBy',
+        ];
     }
 
     /**
@@ -76,6 +85,9 @@ class PersonTransformer extends SceneTransformer {
             'id',
             'name',
             'email',
+            
+            // add extra key only when some condition meets
+            'extra' => $this->when($this->someCondition, 'extra'),
         ];
     }
 
