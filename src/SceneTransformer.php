@@ -158,7 +158,7 @@ abstract class SceneTransformer implements Transformer
      */
     protected function getNullState()
     {
-        return [];
+        return null;
     }
 
     /**

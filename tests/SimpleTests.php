@@ -148,6 +148,25 @@ class SimpleTests extends BaseTestCase
         );
     }
 
+    public function testNullStateReturnsNull()
+    {
+        $transformer = new class extends SceneTransformer
+        {
+            protected function getStructure()
+            {
+                return ['id'];
+            }
+        };
+
+        $this->assertTransformation(
+            $transformer,
+            [null],
+            [
+                null
+            ]
+        );
+    }
+
     public function testPreProcessSingle()
     {
         $transformer = new class extends SceneTransformer
