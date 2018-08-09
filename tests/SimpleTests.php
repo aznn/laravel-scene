@@ -5,6 +5,7 @@ namespace Tests;
 use Azaan\LaravelScene\Contracts\Transformer;
 use Azaan\LaravelScene\SceneTransformer;
 use Illuminate\Support\Collection;
+use Tests\Helpers\Person;
 
 class SimpleTests extends BaseTestCase
 {
@@ -435,6 +436,33 @@ class SimpleTests extends BaseTestCase
                     'valid'  => 'John Doe',
                     'valid2' => 'John Doe',
                 ],
+            ]
+        );
+    }
+
+    public function testToArrayNotCalledWhenDoingModelTransformation()
+    {
+        $arr = head($this->personsArray());
+        $mockObject = $this->getMockBuilder(Person::class)
+            ->setConstructorArgs([$arr])
+            ->setMethods(['toArray'])
+            ->getMock();
+
+        $mockObject
+            ->expects($this->never())
+            ->method('toArray');
+
+        $this->assertSimpleTransformer(
+            new \Illuminate\Database\Eloquent\Collection([$mockObject]),
+            [
+                [
+                    'id'   => 1,
+                    'name' => 'Azaan',
+                ],
+            ],
+            [
+                'id',
+                'name',
             ]
         );
     }

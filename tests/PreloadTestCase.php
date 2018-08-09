@@ -127,8 +127,8 @@ class PreloadTestCase extends BaseTestCase
             $this->collectionLoadsExpectation(['key.child']),
 
             [
-                ['key' => []],
-                ['key' => []],
+                ['key' => null],
+                ['key' => null],
             ]
         );
     }

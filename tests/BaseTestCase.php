@@ -91,12 +91,14 @@ class BaseTestCase extends TestCase
                 'name'    => 'Azaan',
                 'email'   => 'azaan@email.com',
                 'invalid' => null,
+                'status'  => 'status',
             ],
             [
-                'id'    => 2,
-                'name'  => 'John Doe',
-                'email' => 'john@email.com',
+                'id'      => 2,
+                'name'    => 'John Doe',
+                'email'   => 'john@email.com',
                 'invalid' => null,
+                'status'  => 'status',
             ],
         ];
     }

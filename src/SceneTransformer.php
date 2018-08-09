@@ -319,14 +319,6 @@ abstract class SceneTransformer implements Transformer
             throw new InvariantViolationException("Transformer preProcess returned null");
         }
 
-        if ($object instanceof Arrayable) {
-            $object = $object->toArray();
-        }
-
-        if (!is_array($object)) {
-            $object = (array)$object;
-        }
-
         // do the transformations
         $transformed = $this->structureTransformationHelper($object, $structure, $original);
 
