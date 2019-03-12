@@ -59,7 +59,15 @@ abstract class SceneTransformer implements Transformer
     protected $downloadStructureOverride = null;
 
     /**
+     * Cached structure
+     *
+     * @var null
+     */
+    protected $__cached_structure = null;
+
+    /**
      * SceneTransformer constructor.
+     *
      * @param null|array $structure
      * @param null|array $minStructure
      * @param null|array $downloadStructure
@@ -208,6 +216,46 @@ abstract class SceneTransformer implements Transformer
     }
 
     /**
+     * Figure relations to be pre load. This takes care of recursively expanding on related relations
+     */
+    public function figurePreloadRelations()
+    {
+        $preloadRelations = $this->getPreloadRelations();
+        if (empty($preloadRelations)) {
+            return [];
+        }
+
+        $toLoad = [];
+        foreach ($preloadRelations as $key => $value) {
+
+            if (is_numeric($key)) {
+                $toLoad[] = $value;
+            } else {
+                // key is not numeric. Load relation if value is truthy.
+                // this allows for cases like 'createdBy' => !$this->showMin
+                if (!$value) {
+                    continue;
+                }
+
+                if ($value === static::PRELOAD_RELATED) {
+                    $structure      = $this->figureStructure();
+                    $childRelations = $this->figureChildRelations(isset($structure[$key]) ? $structure[$key] : null);
+
+                    foreach ($childRelations as $relation) {
+                        $toLoad[] = "$key.$relation";
+                    }
+                    continue;
+                }
+
+                // add key
+                $toLoad[] = $key;
+            }
+        }
+
+        return $toLoad;
+    }
+
+    /**
      * Transform the given data structure.
      *
      * This is the entry point for transformations
@@ -227,37 +275,9 @@ abstract class SceneTransformer implements Transformer
         $structure = $this->figureStructure();
 
         if ($data instanceof DbCollection || $data instanceof Model) {
-            $preloadRelations = $this->getPreloadRelations();
+            $preloadRelations = $this->figurePreloadRelations();
             if (!empty($preloadRelations)) {
-
-                $toLoad = [];
-                foreach ($preloadRelations as $key => $value) {
-
-                    if (is_numeric($key)) {
-                        $toLoad[] = $value;
-                    } else {
-                        // key is not numeric. Load relation if value is truthy.
-                        // this allows for cases like 'createdBy' => !$this->showMin
-                        if (!$value) {
-                            continue;
-                        }
-
-                        if ($value === static::PRELOAD_RELATED) {
-                            $childRelations = $this->figureChildRelations(isset($structure[$key]) ? $structure[$key] : null);
-                            foreach ($childRelations as $relation) {
-                                $toLoad[] = "$key.$relation";
-                            }
-                            continue;
-                        }
-
-                        // add key
-                        $toLoad[] = $key;
-                    }
-                }
-
-                if (!empty($toLoad)) {
-                    $data->loadMissing(array_unique($toLoad));
-                }
+                $data->loadMissing(array_unique($preloadRelations));
             }
         }
 
@@ -303,6 +323,7 @@ abstract class SceneTransformer implements Transformer
      * @param       $object
      *
      * @param array $structure
+     *
      * @return array
      * @throws InvariantViolationException
      */
@@ -336,21 +357,28 @@ abstract class SceneTransformer implements Transformer
      */
     protected function figureStructure()
     {
+        if (!empty($this->__cached_structure)) {
+            return $this->__cached_structure;
+        }
+
         if ($this->useDownloadStructure) {
-            return $this->downloadStructureOverride ? $this->downloadStructureOverride : $this->getDownloadStructure();
+            $structure = $this->downloadStructureOverride ? $this->downloadStructureOverride : $this->getDownloadStructure();
 
         } else if ($this->showMin) {
-            return $this->minStructureOverride ? $this->minStructureOverride : $this->getMinStructure();
+            $structure = $this->minStructureOverride ? $this->minStructureOverride : $this->getMinStructure();
 
         } else {
-            return $this->structureOverride ? $this->structureOverride : $this->getStructure();
+            $structure = $this->structureOverride ? $this->structureOverride : $this->getStructure();
         }
+
+        return $this->__cached_structure = $structure;
     }
 
     /**
      * Figure preload relations
      *
      * @param $obj
+     *
      * @return array
      */
     protected function figureChildRelations($obj)
@@ -360,7 +388,7 @@ abstract class SceneTransformer implements Transformer
         }
 
         if ($obj instanceof SceneTransformer) {
-            return $obj->getPreloadRelations();
+            return $obj->figurePreloadRelations();
         }
 
         // TODO: Consider case where structure value can be [newKey, Transformer]
@@ -372,7 +400,7 @@ abstract class SceneTransformer implements Transformer
      * Given an object does any transformations. This function is called after applying
      * structure transformations.
      *
-     * @param array $object object to apply the transformations on
+     * @param array $object   object to apply the transformations on
      * @param mixed $original original object without any transformations
      *
      * @return array transformed object
@@ -387,9 +415,9 @@ abstract class SceneTransformer implements Transformer
     /**
      * Helper function which does structure transformations
      *
-     * @param array $object object to perform on
+     * @param array $object    object to perform on
      * @param array $structure structure rules
-     * @param array $original original object
+     * @param array $original  original object
      *
      * @return array transformed object
      * @throws InvariantViolationException
