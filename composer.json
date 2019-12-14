@@ -3,8 +3,8 @@
     "description": "Laravel API Transformer",
     "type": "library",
     "require": {
-        "illuminate/support": "5.0.*|5.1.*|5.2.*|5.3.*|5.4.*|5.5.*|5.6.*|5.7.*|5.8.*",
-        "illuminate/database": "5.0.*|5.1.*|5.2.*|5.3.*|5.4.*|5.5.*|5.6.*|5.7.*|5.8.*",
+        "illuminate/support": "5.*|6.*",
+        "illuminate/database": "5.*|6.*",
         "php": ">=5.5.9"
     },
     "autoload": {
