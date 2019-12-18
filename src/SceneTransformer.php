@@ -519,7 +519,7 @@ abstract class SceneTransformer implements Transformer
         }
 
         // 1. Call get method if it exists on transformer
-        $getMethod = 'get' . studly_case($key);
+        $getMethod = 'get' . \Str::studly($key);
         if (method_exists($this, $getMethod)) {
             return call_user_func_array([$this, $getMethod], [$original]);
         }
