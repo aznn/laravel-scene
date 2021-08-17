@@ -535,7 +535,7 @@ abstract class SceneTransformer implements Transformer
         }
 
         // 3. Call get method on object
-        if ((is_object($original) || is_string($original)) && method_exists($original, $getMethod)) {
+        if (is_object($original) && method_exists($original, $getMethod)) {
             return call_user_func_array([$original, $getMethod], []);
         }
 
